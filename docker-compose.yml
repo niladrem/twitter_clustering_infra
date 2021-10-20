@@ -1,0 +1,13 @@
+version: "3.3"
+
+services:
+  db:
+    image: postgres:14.0
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/shared_data/formatted:/shared/data
+      - ./postgres/initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_PASSWORD: example
+      PGDATA: /var/lib/postgresql/data/pgdata
