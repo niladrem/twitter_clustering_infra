@@ -14,4 +14,13 @@ RUN apt-get -qq update && apt-get -qq -y install curl bzip2 \
     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
     && conda clean --all --yes
 
+COPY requirements.txt .
+
+RUN conda create -n twitter -y  && \
+    conda init && \
+    . /home/rundeck/.bashrc && \
+    . /usr/local/etc/profile.d/conda.sh && \
+    conda activate twitter && \
+    pip install -r requirements.txt
+
 ENV PATH /opt/conda/bin:$PATH

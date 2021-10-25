@@ -1,0 +1,55 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: e30d34f8-e31c-4fa0-8c0c-043f69d5c5f0
+  loglevel: INFO
+  name: Download tweets
+  nodeFilterEditable: false
+  options:
+  - label: Consumer Key
+    name: consumer-key
+    required: true
+    secure: true
+    valueExposed: true
+  - label: Consumer Secret
+    name: consumer-secret
+    required: true
+    secure: true
+    valueExposed: true
+  - label: Access Token Key
+    name: access-token-key
+    required: true
+    secure: true
+    valueExposed: true
+  - label: Access Token Secret
+    name: access-token-secret
+    required: true
+    secure: true
+    valueExposed: true
+  - label: ¿Query?
+    name: query
+    value: covid
+  - label: Hours
+    name: hours
+    value: '3'
+  - hidden: true
+    label: Path
+    name: path
+    value: /shared/data/json/
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  sequence:
+    commands:
+    - script: |
+        conda init
+        . ~/.bashrc
+        . /usr/local/etc/profile.d/conda.sh
+        conda activate twitter
+
+        python3 /scripts/download_tweets.py --consumer-key $RD_OPTION_CONSUMER_KEY --consumer-secret $RD_OPTION_CONSUMER_SECRET \
+            --access-token-key $RD_OPTION_ACCESS_TOKEN_KEY --access-token-secret $RD_OPTION_ACCESS_TOKEN_SECRET \
+            --query $RD_OPTION_QUERY --hours $RD_OPTION_HOURS --path $RD_OPTION_PATH
+    keepgoing: false
+    strategy: node-first
+  uuid: e30d34f8-e31c-4fa0-8c0c-043f69d5c5f0
