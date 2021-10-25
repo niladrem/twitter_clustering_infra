@@ -18,7 +18,7 @@ services:
     ports:
       - 4440:4440
     volumes:
-      - ./data/shared_data/formatted:/shared/data
+      - ./data/shared_data:/shared/data
       - ./processing_module/scripts:/scripts
       - ./processing_module/rundeck:/etc/rundeck
     environment:

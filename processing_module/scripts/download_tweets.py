@@ -1,6 +1,7 @@
-# https://docs.tweepy.org/en/stable/api.html#get-tweet-timelines
 import tweepy
 import argparse
+import json
+import uuid
 from datetime import datetime, timedelta, timezone
 
 parser = argparse.ArgumentParser()
@@ -11,6 +12,7 @@ parser.add_argument('--access-token-key')
 parser.add_argument('--access-token-secret')
 parser.add_argument('--query', default='covid')
 parser.add_argument('--hours', type=int, default=3)
+parser.add_argument('--path', default="/shared/data/json/")
 
 args = parser.parse_args()
 
@@ -29,8 +31,10 @@ while curr_date > min_date:
     max_id = t.id if max_id is None else min(max_id, t.id)
     curr_date = t.created_at
     if curr_date > min_date:
-      results.append(t)
+      results.append(t._json)
 
-print(len(results))
+filename = str(uuid.uuid4())
+with open(args.path + filename, "w") as result_file:
+  json.dump(results, result_file)
 
 
