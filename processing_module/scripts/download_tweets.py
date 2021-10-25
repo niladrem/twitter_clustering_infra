@@ -1,6 +1,8 @@
 # https://docs.tweepy.org/en/stable/api.html#get-tweet-timelines
 import tweepy
 import argparse
+from datetime import datetime, timedelta, timezone
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--consumer-key')
@@ -8,7 +10,7 @@ parser.add_argument('--consumer-secret')
 parser.add_argument('--access-token-key')
 parser.add_argument('--access-token-secret')
 parser.add_argument('--query', default='covid')
-parser.add_argument('--days', type=int, default=3)
+parser.add_argument('--hours', type=int, default=3)
 
 args = parser.parse_args()
 
@@ -17,6 +19,18 @@ auth.set_access_token(args.access_token_key, args.access_token_secret)
 
 api = tweepy.API(auth)
 
-out = api.search_tweets("covid", lang="pl", result_type="recent", count=5)
-for t in out:
-  print(t._json)
+min_date = datetime.now(timezone.utc) - timedelta(hours=args.hours)
+curr_date = datetime.now(timezone.utc)
+max_id = None
+results = []
+while curr_date > min_date:
+  out = api.search_tweets(args.query, lang="pl", result_type="recent", count=100, max_id=max_id)
+  for t in out:
+    max_id = t.id if max_id is None else min(max_id, t.id)
+    curr_date = t.created_at
+    if curr_date > min_date:
+      results.append(t)
+
+print(len(results))
+
+
