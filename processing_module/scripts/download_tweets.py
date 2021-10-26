@@ -1,6 +1,6 @@
 import tweepy
 import argparse
-import json
+import pickle
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -31,10 +31,10 @@ while curr_date > min_date:
     max_id = t.id if max_id is None else min(max_id, t.id)
     curr_date = t.created_at
     if curr_date > min_date:
-      results.append(t._json)
+      results.append(t)
 
 filename = str(uuid.uuid4())
-with open(args.path + filename, "w") as result_file:
-  json.dump(results, result_file)
+with open(args.path + filename, "wb") as result_file:
+  pickle.dump(results, result_file)
 
 
