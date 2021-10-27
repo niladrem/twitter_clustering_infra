@@ -26,7 +26,7 @@ curr_date = datetime.now(timezone.utc)
 max_id = None
 results = []
 while curr_date > min_date:
-  out = api.search_tweets(args.query, lang="pl", result_type="recent", count=100, max_id=max_id)
+  out = api.search_tweets(args.query, lang="pl", result_type="recent", count=100, max_id=max_id, tweet_mode="extended")
   for t in out:
     max_id = t.id if max_id is None else min(max_id, t.id)
     curr_date = t.created_at
