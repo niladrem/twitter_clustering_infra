@@ -3,6 +3,7 @@ version: "3.3"
 services:
   db:
     image: postgres:14.0
+    hostname: postgres
     ports:
       - 5432:5432
     volumes:
@@ -11,3 +12,22 @@ services:
     environment:
       POSTGRES_PASSWORD: example
       PGDATA: /var/lib/postgresql/data/pgdata
+  processing_module:
+    image: processing_module
+    hostname: rundeck
+    ports:
+      - 4440:4440
+    volumes:
+      - ./data/shared_data:/shared/data
+      - ./processing_module/scripts:/scripts
+      - ./processing_module/rundeck:/etc/rundeck
+    environment:
+      RUNDECK_TOKENS_FILE: /etc/rundeck/tokens.properties
+  configure_rundeck:
+    image: curlimages/curl:7.79.1
+    restart: "no"
+    depends_on:
+      - processing_module
+    volumes:
+      - ./processing_module/rundeck:/etc/rundeck
+    entrypoint: ["sh", "/etc/rundeck/init.sh"]
