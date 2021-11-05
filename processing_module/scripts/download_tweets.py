@@ -10,15 +10,44 @@ users_to_process = []
 processed_users = []
 
 
+def add_user(user):
+    users_to_process.append(user.id)
+    users_dict[user.id] = user
+
+
 def process_simple_relation(relation_type, src_user_id, dst_user):
-    users_to_process.append(dst_user.id)
-    users_dict[dst_user.id] = dst_user
+    add_user(dst_user)
     relations_dict[relation_type].append({"src_user_id": src_user_id, "dst_user_id": dst_user.id})
+
+
+def process_post(api, post):
+    # quote - response/retweet?
+    src_user_id = post.user.id
+    post_type = "none"
+    dst_user_id = None
+    text = post.text
+    if post.is_quote_status:
+        add_user(post.quoted_status.user)
+        post_type = "response"
+        dst_user_id = post.quoted_status.user.id
+    elif post.retweeted_status is not None:
+        add_user(post.retweeted_status.user)
+        post_type = "retweet"
+        dst_user_id = post.retweeted_status.user.id
+        src_user_id, dst_user_id = dst_user_id, src_user_id
+    # @TODO add mention
+
+    if post_type == "none":
+        # get retweeters
+        pass
+    print(post)
 
 
 def process_user(api, user_id):
     # user timeline
-    # for each retweeters/ids
+    posts = api.user_timeline(user_id=user_id, count=200)
+    for post in posts:
+        process_post(api, post)
 
     # followers
     followers = api.get_followers(user_id=user_id, count=200)
