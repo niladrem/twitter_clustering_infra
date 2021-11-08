@@ -27,7 +27,7 @@ def process_post(api, post, extra_info):
         status = api.lookup_statuses([post.quoted_status_id])[0]
         add_user(status.user)
         process_relation("quote", src_user_id, status.user.id, post.text, post.id)
-    if post.retweeted:
+    if post.retweeted: # nie dziala :( @TODO
         add_user(post.retweeted_status.user)
         process_relation("retweet", post.retweeted_status.user.id, src_user_id, post.text, post.id)
     if post.in_reply_to_status_id is not None:
@@ -38,18 +38,22 @@ def process_post(api, post, extra_info):
         except:
             print("Could not find status with id", post.in_reply_to_status_id)
     for entity in post.entities['user_mentions']:
-        if entity['id'] not in users_dict:
-            mentioned_user = api.get_user(user_id=entity['id'])
-            add_user(mentioned_user)
-        process_relation("mention", src_user_id, entity['id'], post.text, post.id)
+        try:
+            if entity['id'] not in users_dict:
+                mentioned_user = api.get_user(user_id=entity['id'])
+                add_user(mentioned_user)
+            process_relation("mention", src_user_id, entity['id'], post.text, post.id)
+        except Exception as e:
+            print(e)
 
-    if extra_info:
-        retweeters = api.get_retweeter_ids(post.id)
-        for retweeter in retweeters:
-            if retweeter not in users_dict:
-                r_user = api.get_user(user_id=retweeter)
-                add_user(r_user)
-            process_relation("retweet", src_user_id, retweeter, post.text, post.id)
+
+    # if extra_info:
+    #     retweeters = api.get_retweeter_ids(post.id)
+    #     for retweeter in retweeters:
+    #         if retweeter not in users_dict:
+    #             r_user = api.get_user(user_id=retweeter)
+    #             add_user(r_user)
+    #         process_relation("retweet", src_user_id, retweeter, post.text, post.id)
 
 
 def process_user(api, user_id, extra_info):
@@ -61,18 +65,21 @@ def process_user(api, user_id, extra_info):
     # favorites
     favorites = api.get_favorites(user_id=user_id, count=200)
     for favorite in favorites:
-        process_relation("like", user_id, favorite)
+        add_user(favorite.user)
+        process_relation("like", user_id, favorite.user.id)
 
     if extra_info:
         # followers
         followers = api.get_followers(user_id=user_id, count=200)
         for follower in followers:
-            process_relation("follow", user_id, follower)
+            add_user(follower)
+            process_relation("follow", user_id, follower.id)
 
         # friends
         friends = api.get_friends(user_id=user_id, count=200)
         for friend in friends:
-            process_relation("friend", user_id, friend)
+            add_user(friend)
+            process_relation("friend", user_id, friend.id)
 
 
 if __name__ == "__main__":
@@ -117,12 +124,6 @@ if __name__ == "__main__":
             processed_users.append(user)
             print("Processed users count: ", len(processed_users))
 
-print("---USER DICT---")
-print(users_dict)
-print("---RELATIONS DICT---")
-print(relations_dict)
-print("---TO PROCESS---")
-print(users_to_process)
 uuid = str(uuid.uuid4())
 with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
     pickle.dump(relations_dict, result_file)

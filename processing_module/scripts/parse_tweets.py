@@ -10,13 +10,13 @@ relations = []  # id_source|id_destination|tweet_id|type|text
 
 def process_users_dict(users_dict):
     for user_id, user in users_dict.items():
-        users.append([user_id, user.screen_name, user.followers_count, user.friends_count, user.favourites_count])
+        users.append(tuple([user_id, user.screen_name, user.followers_count, user.friends_count, user.favourites_count]))
 
 
 def process_relations_dict(relations_dict):
     for relation_type, relation_list in relations_dict.items():
         for rel in relation_list:
-            relations.append([rel['src_user_id'], rel['dst_user_id'], rel['tweet_id'], relation_type, rel['text']])
+            relations.append(tuple([rel['src_user_id'], rel['dst_user_id'], rel['tweet_id'], relation_type, rel['text']]))
 
 
 if __name__ == "__main__":
@@ -45,6 +45,8 @@ if __name__ == "__main__":
 
     usersDf = pd.DataFrame(users, columns=["id", "screen_name", "followers_count", "friends_count", "favourites_count"])
     relationsDf = pd.DataFrame(relations, columns=["id_source", "id_destination", "tweet_id", "type", "text"])
+
+    relationsDf['tweet_id'] = relationsDf['tweet_id'].astype('Int64')
 
     usersDf.to_csv(os.path.join(args.output_path, "users_" + str(int(time.time())) + ".csv"),
                    sep='\t', encoding='utf-8', index=False)
