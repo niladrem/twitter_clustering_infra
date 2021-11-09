@@ -27,7 +27,7 @@ def process_post(api, post, extra_info):
         status = api.lookup_statuses([post.quoted_status_id])[0]
         add_user(status.user)
         process_relation("quote", src_user_id, status.user.id, post.text, post.id)
-    if post.retweeted: # nie dziala :( @TODO
+    if hasattr(post, 'retweeted_status'):
         add_user(post.retweeted_status.user)
         process_relation("retweet", post.retweeted_status.user.id, src_user_id, post.text, post.id)
     if post.in_reply_to_status_id is not None:
@@ -47,7 +47,7 @@ def process_post(api, post, extra_info):
             print(e)
 
 
-    # if extra_info:
+    # if extra_info: # 10min/person :(
     #     retweeters = api.get_retweeter_ids(post.id)
     #     for retweeter in retweeters:
     #         if retweeter not in users_dict:
