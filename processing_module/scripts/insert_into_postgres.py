@@ -40,7 +40,7 @@ if __name__ == "__main__":
     cur = conn.cursor()
 
     files = os.listdir(args.path)
-    for file in files:
+    for file in reversed(files):
         try:
             if "users" in file:
                 process_users_df(cur,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
                                                         'id_destination': 'str'}, na_values=['NaN']),
                                      args.postgres_relations)
             if args.remove_processed_files:
-                os.remove(os.path.join(args.input_path, file))
+                os.remove(os.path.join(args.path, file))
         except Exception as e:
             print(e)
 
