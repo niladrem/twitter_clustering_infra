@@ -1,2 +1,4 @@
-tweepy
-pandas
+tweepy>=4.1.0
+pandas>=1.3.4
+psycopg2>=2.9.1
+psycopg2-binary>=2.9.1

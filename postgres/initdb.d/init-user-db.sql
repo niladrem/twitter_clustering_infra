@@ -32,4 +32,10 @@ CREATE TABLE relations (
         FOREIGN KEY(id_destination)
 	    REFERENCES users(id)
 );
+
+CREATE UNIQUE INDEX simple_relations_idx ON relations (id_source, id_destination, type)
+WHERE type IN ('follow', 'friend', 'like');
+CREATE UNIQUE INDEX full_relations_idx ON relations (id_source, id_destination, tweet_id, type)
+WHERE type NOT IN ('follow', 'friend', 'like');
+
 ALTER TABLE relations owner to twitter;

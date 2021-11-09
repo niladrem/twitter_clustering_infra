@@ -32,7 +32,7 @@ def process_post(api, post, extra_info):
             print("Could not find status with id", post.quoted_status_id)
     if hasattr(post, 'retweeted_status'):
         add_user(post.retweeted_status.user)
-        process_relation("retweet", post.retweeted_status.user.id, src_user_id, post.text, post.id)
+        process_relation("retweet", post.retweeted_status.user.id, src_user_id, None, post.id)
     if post.in_reply_to_status_id is not None:
         try:
             status = api.lookup_statuses([post.in_reply_to_status_id])[0]
