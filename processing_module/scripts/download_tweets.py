@@ -24,9 +24,12 @@ def process_relation(relation_type, src_user_id, dst_user_id, text=None, tweet_i
 def process_post(api, post, extra_info):
     src_user_id = post.user.id
     if post.is_quote_status:
-        status = api.lookup_statuses([post.quoted_status_id])[0]
-        add_user(status.user)
-        process_relation("quote", src_user_id, status.user.id, post.text, post.id)
+        try:
+            status = api.lookup_statuses([post.quoted_status_id])[0]
+            add_user(status.user)
+            process_relation("quote", src_user_id, status.user.id, post.text, post.id)
+        except:
+            print("Could not find status with id", post.quoted_status_id)
     if hasattr(post, 'retweeted_status'):
         add_user(post.retweeted_status.user)
         process_relation("retweet", post.retweeted_status.user.id, src_user_id, post.text, post.id)
