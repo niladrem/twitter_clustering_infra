@@ -1,9 +1,13 @@
 import tweepy
 import argparse
+import logging
 import os
 import pickle
 import uuid
 from datetime import datetime, timedelta, timezone
+
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+log = logging.getLogger(__name__)
 
 users_dict = {}
 relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [], "reply": [], "quote": []}
@@ -28,8 +32,8 @@ def process_post(api, post, extra_info):
             status = api.lookup_statuses([post.quoted_status_id])[0]
             add_user(status.user)
             process_relation("quote", src_user_id, status.user.id, post.text, post.id)
-        except:
-            print("Could not find status with id", post.quoted_status_id)
+        except Exception as e:
+            log.error(e)
     if hasattr(post, 'retweeted_status'):
         add_user(post.retweeted_status.user)
         process_relation("retweet", post.retweeted_status.user.id, src_user_id, None, post.id)
@@ -39,7 +43,7 @@ def process_post(api, post, extra_info):
             add_user(status.user)
             process_relation("reply", src_user_id, status.user.id, post.text, post.id)
         except:
-            print("Could not find status with id", post.in_reply_to_status_id)
+            log.error("Could not find status with id %s", post.in_reply_to_status_id)
     for entity in post.entities['user_mentions']:
         try:
             if entity['id'] not in users_dict:
@@ -47,7 +51,7 @@ def process_post(api, post, extra_info):
                 add_user(mentioned_user)
             process_relation("mention", src_user_id, entity['id'], post.text, post.id)
         except Exception as e:
-            print(e)
+            log.error(e)
 
 
     # if extra_info: # 10min/person :(
@@ -125,7 +129,7 @@ if __name__ == "__main__":
         if user not in processed_users:
             process_user(api, user, args.extra_info)
             processed_users.append(user)
-            print("Processed users count: ", len(processed_users))
+            log.info("Processed users count %s", len(processed_users))
 
 uuid = str(uuid.uuid4())
 with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
