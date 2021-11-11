@@ -1,0 +1,41 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: 5b7a4598-497b-4e27-a562-2322bf77f112
+  loglevel: INFO
+  name: Parse tweets
+  nodeFilterEditable: false
+  options:
+  - label: Input path
+    name: input-path
+    required: true
+    value: /shared/data/raw/
+  - label: Output path
+    name: output-path
+    required: true
+    value: /shared/data/formatted/
+  - enforced: true
+    label: Remove processed files
+    name: remove
+    required: true
+    value: 'True'
+    values:
+    - 'True'
+    - 'False'
+    valuesListDelimiter: ','
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  sequence:
+    commands:
+    - script: |-
+        conda init
+        . ~/.bashrc
+        . /usr/local/etc/profile.d/conda.sh
+        conda activate twitter
+
+        python3 /scripts/parse_tweets.py --input-path $RD_OPTION_INPUT_PATH \
+            --output-path $RD_OPTION_OUTPUT_PATH --remove-processed-files $RD_OPTION_REMOVE
+    keepgoing: false
+    strategy: node-first
+  uuid: 5b7a4598-497b-4e27-a562-2322bf77f112

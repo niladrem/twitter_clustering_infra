@@ -10,3 +10,5 @@ export RD_JOB_PATH="/etc/rundeck"
 
 curl -X POST "$RD_URL/api/14/projects" -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Type: application/json" --data '{"name": "twitter"}'
 curl -kSsv -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Token: application/yaml" -H "fileformat: yaml" -F xmlBatch=@"$RD_JOB_PATH/Download_tweets.yaml" "$RD_URL/api/14/project/twitter/jobs/import?fileformat=yaml&dupeOption=update"
+
+curl -kSsv -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Token: application/yaml" -H "fileformat: yaml" -F xmlBatch=@"$RD_JOB_PATH/Parse_tweets.yaml" "$RD_URL/api/14/project/twitter/jobs/import?fileformat=yaml&dupeOption=update"
