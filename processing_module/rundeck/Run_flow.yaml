@@ -1,0 +1,139 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: 9fad5932-43be-11ec-81d3-0242ac130003
+  loglevel: INFO
+  name: Run flow
+  nodeFilterEditable: false
+  options:
+  - hidden: true
+    label: Raw path
+    name: raw-path
+    value: /shared/data/raw
+  - hidden: true
+    label: Formatted path
+    name: formatted-path
+    value: /shared/data/formatted
+  - label: Start from
+    enforced: true
+    name: step
+    required: true
+    value: 'step1'
+    values:
+    - 'step1'
+    - 'step2'
+    - 'step3'
+    valuesListDelimiter: ','
+  - enforced: true
+    label: Remove processed files
+    name: remove
+    required: true
+    value: 'True'
+    values:
+    - 'True'
+    - 'False'
+    valuesListDelimiter: ','
+  - label: Consumer Key
+    name: consumer-key
+    secure: true
+    valueExposed: true
+  - label: Consumer Secret
+    name: consumer-secret
+    secure: true
+    valueExposed: true
+  - label: Access Token Key
+    name: access-token-key
+    secure: true
+    valueExposed: true
+  - label: Access Token Secret
+    name: access-token-secret
+    secure: true
+    valueExposed: true
+  - label: ¿Query?
+    name: query
+    value: covid
+  - label: Hours
+    name: hours
+    value: '3'
+  - enforced: true
+    label: Extra info (followers&friends)
+    name: extra
+    value: 'False'
+    values:
+    - 'False'
+    - 'True'
+    valuesListDelimiter: ','
+  - label: Users limit
+    name: limit
+    regex: '[0-9]+'
+    value: '1000'
+  - hidden: true
+    label: host
+    name: host
+    required: true
+    value: postgres
+  - hidden: true
+    label: port
+    name: port
+    required: true
+    value: '5432'
+  - hidden: true
+    label: login
+    name: login
+    required: true
+    value: twitter
+  - hidden: true
+    label: password
+    name: password
+    required: true
+    value: twitter
+  - hidden: true
+    label: database
+    name: database
+    required: true
+    value: twitter
+  - hidden: true
+    label: users table
+    name: users-table
+    required: true
+    value: public.users
+  - hidden: true
+    label: relations table
+    name: relations-table
+    required: true
+    value: public.relations
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  sequence:
+    commands:
+    - script: |
+        conda init
+        . ~/.bashrc
+        . /usr/local/etc/profile.d/conda.sh
+        conda activate twitter
+
+        case $RD_OPTION_STEP in
+            step1)
+                python3 /scripts/download_tweets.py --consumer-key $RD_OPTION_CONSUMER_KEY --consumer-secret $RD_OPTION_CONSUMER_SECRET \
+                    --access-token-key $RD_OPTION_ACCESS_TOKEN_KEY --access-token-secret $RD_OPTION_ACCESS_TOKEN_SECRET \
+                    --query $RD_OPTION_QUERY --hours $RD_OPTION_HOURS --path $RD_OPTION_RAW_PATH \
+                    --extra-info $RD_OPTION_EXTRA --users-limit $RD_OPTION_LIMIT
+        ;;&
+            step2)
+                python3 /scripts/parse_tweets.py --input-path $RD_OPTION_RAW_PATH \
+                    --output-path $RD_OPTION_FORMATTED_PATH --remove-processed-files $RD_OPTION_REMOVE
+        ;;&
+            step3)
+                python3 /scripts/insert_into_postgres.py --path $RD_OPTION_FORMATTED_PATH --remove-processed-files $RD_OPTION_REMOVE \
+                    --postgres-host $RD_OPTION_HOST --postgres-port $RD_OPTION_PORT \
+                    --postgres-login $RD_OPTION_LOGIN --postgres-password $RD_OPTION_PASSWORD \
+                    --postgres-database $RD_OPTION_DATABASE --postgres-users $RD_OPTION_USERS_TABLE \
+                    --postgres-relations $RD_OPTION_RELATIONS_TABLE
+        ;;
+        esac
+
+
+    keepgoing: false
+    strategy: node-first
+  uuid: 9fad5932-43be-11ec-81d3-0242ac130003
