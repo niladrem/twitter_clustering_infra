@@ -14,3 +14,5 @@ curl -kSsv -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Token: application/ya
 curl -kSsv -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Token: application/yaml" -H "fileformat: yaml" -F xmlBatch=@"$RD_JOB_PATH/Parse_tweets.yaml" "$RD_URL/api/14/project/twitter/jobs/import?fileformat=yaml&dupeOption=update"
 
 curl -kSsv -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Token: application/yaml" -H "fileformat: yaml" -F xmlBatch=@"$RD_JOB_PATH/Insert_into_postgres.yaml" "$RD_URL/api/14/project/twitter/jobs/import?fileformat=yaml&dupeOption=update"
+
+curl -kSsv -H "X-Rundeck-Auth-Token:$RD_TOKEN" -H "Content-Token: application/yaml" -H "fileformat: yaml" -F xmlBatch=@"$RD_JOB_PATH/Run_flow.yaml" "$RD_URL/api/14/project/twitter/jobs/import?fileformat=yaml&dupeOption=update"

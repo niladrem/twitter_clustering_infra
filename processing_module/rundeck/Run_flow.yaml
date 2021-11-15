@@ -24,15 +24,6 @@
     - 'step2'
     - 'step3'
     valuesListDelimiter: ','
-  - enforced: true
-    label: Remove processed files
-    name: remove
-    required: true
-    value: 'True'
-    values:
-    - 'True'
-    - 'False'
-    valuesListDelimiter: ','
   - label: Consumer Key
     name: consumer-key
     secure: true
@@ -119,13 +110,13 @@
                     --access-token-key $RD_OPTION_ACCESS_TOKEN_KEY --access-token-secret $RD_OPTION_ACCESS_TOKEN_SECRET \
                     --query $RD_OPTION_QUERY --hours $RD_OPTION_HOURS --path $RD_OPTION_RAW_PATH \
                     --extra-info $RD_OPTION_EXTRA --users-limit $RD_OPTION_LIMIT
-        ;;&
+        ;&
             step2)
                 python3 /scripts/parse_tweets.py --input-path $RD_OPTION_RAW_PATH \
-                    --output-path $RD_OPTION_FORMATTED_PATH --remove-processed-files $RD_OPTION_REMOVE
-        ;;&
+                    --output-path $RD_OPTION_FORMATTED_PATH
+        ;&
             step3)
-                python3 /scripts/insert_into_postgres.py --path $RD_OPTION_FORMATTED_PATH --remove-processed-files $RD_OPTION_REMOVE \
+                python3 /scripts/insert_into_postgres.py --path $RD_OPTION_FORMATTED_PATH \
                     --postgres-host $RD_OPTION_HOST --postgres-port $RD_OPTION_PORT \
                     --postgres-login $RD_OPTION_LOGIN --postgres-password $RD_OPTION_PASSWORD \
                     --postgres-database $RD_OPTION_DATABASE --postgres-users $RD_OPTION_USERS_TABLE \
