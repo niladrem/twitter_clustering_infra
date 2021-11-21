@@ -35,7 +35,21 @@
   - hidden: true
     label: Path
     name: path
-    value: /shared/data/json/
+    value: /shared/data/raw
+  - enforced: true
+    label: Extra info (followers&friends)
+    name: extra
+    required: true
+    value: 'False'
+    values:
+    - 'False'
+    - 'True'
+    valuesListDelimiter: ','
+  - label: Users limit
+    name: limit
+    regex: '[0-9]+'
+    required: true
+    value: '1000'
   plugins:
     ExecutionLifecycle: null
   scheduleEnabled: true
@@ -49,7 +63,8 @@
 
         python3 /scripts/download_tweets.py --consumer-key $RD_OPTION_CONSUMER_KEY --consumer-secret $RD_OPTION_CONSUMER_SECRET \
             --access-token-key $RD_OPTION_ACCESS_TOKEN_KEY --access-token-secret $RD_OPTION_ACCESS_TOKEN_SECRET \
-            --query $RD_OPTION_QUERY --hours $RD_OPTION_HOURS --path $RD_OPTION_PATH
+            --query $RD_OPTION_QUERY --hours $RD_OPTION_HOURS --path $RD_OPTION_PATH \
+            --extra-info $RD_OPTION_EXTRA --users-limit $RD_OPTION_LIMIT
     keepgoing: false
     strategy: node-first
   uuid: e30d34f8-e31c-4fa0-8c0c-043f69d5c5f0
