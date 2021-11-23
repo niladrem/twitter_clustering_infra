@@ -63,7 +63,7 @@
 
         python3 /scripts/download_tweets.py --consumer-key $RD_OPTION_CONSUMER_KEY --consumer-secret $RD_OPTION_CONSUMER_SECRET \
             --access-token-key $RD_OPTION_ACCESS_TOKEN_KEY --access-token-secret $RD_OPTION_ACCESS_TOKEN_SECRET \
-            --query $RD_OPTION_QUERY --hours $RD_OPTION_HOURS --path $RD_OPTION_PATH \
+            --query "$RD_OPTION_QUERY" --hours $RD_OPTION_HOURS --path $RD_OPTION_PATH \
             --extra-info $RD_OPTION_EXTRA --users-limit $RD_OPTION_LIMIT
     keepgoing: false
     strategy: node-first
