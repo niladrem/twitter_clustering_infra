@@ -13,6 +13,8 @@ users_dict = {}
 relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [], "reply": [], "quote": []}
 users_to_process = []
 processed_users = []
+process_time = datetime.now(timezone.utc)
+query = None
 
 
 def add_user(user):
@@ -20,9 +22,10 @@ def add_user(user):
     users_dict[user.id] = user
 
 
-def process_relation(relation_type, src_user_id, dst_user_id, text=None, tweet_id=None):
+def process_relation(relation_type, src_user_id, dst_user_id, text=None, tweet_id=None, created_at=None):
     relations_dict[relation_type].append(
-        {"src_user_id": src_user_id, "dst_user_id": dst_user_id, "text": text, "tweet_id": tweet_id})
+        {"src_user_id": src_user_id, "dst_user_id": dst_user_id, "text": text, "tweet_id": tweet_id, "query": query,
+         "process_time": process_time, "created_at": created_at})
 
 
 def process_post(api, post, extra_info):
@@ -31,17 +34,17 @@ def process_post(api, post, extra_info):
         try:
             status = api.lookup_statuses([post.quoted_status_id])[0]
             add_user(status.user)
-            process_relation("quote", src_user_id, status.user.id, post.text, post.id)
+            process_relation("quote", src_user_id, status.user.id, post.text, post.id, post.created_at)
         except Exception as e:
             log.error(e)
     if hasattr(post, 'retweeted_status'):
         add_user(post.retweeted_status.user)
-        process_relation("retweet", post.retweeted_status.user.id, src_user_id, None, post.id)
+        process_relation("retweet", post.retweeted_status.user.id, src_user_id, None, post.id, post.created_at)
     if post.in_reply_to_status_id is not None:
         try:
             status = api.lookup_statuses([post.in_reply_to_status_id])[0]
             add_user(status.user)
-            process_relation("reply", src_user_id, status.user.id, post.text, post.id)
+            process_relation("reply", src_user_id, status.user.id, post.text, post.id, post.created_at)
         except:
             log.error("Could not find status with id %s", post.in_reply_to_status_id)
     for entity in post.entities['user_mentions']:
@@ -49,10 +52,9 @@ def process_post(api, post, extra_info):
             if entity['id'] not in users_dict:
                 mentioned_user = api.get_user(user_id=entity['id'])
                 add_user(mentioned_user)
-            process_relation("mention", src_user_id, entity['id'], post.text, post.id)
+            process_relation("mention", src_user_id, entity['id'], post.text, post.id, post.created_at)
         except Exception as e:
             log.error(e)
-
 
     # if extra_info: # 10min/person :(
     #     retweeters = api.get_retweeter_ids(post.id)
@@ -107,6 +109,8 @@ if __name__ == "__main__":
     auth = tweepy.OAuthHandler(args.consumer_key, args.consumer_secret)
     auth.set_access_token(args.access_token_key, args.access_token_secret)
 
+    query = args.query
+
     api = tweepy.API(auth, wait_on_rate_limit=True)
 
     min_date = datetime.now(timezone.utc) - timedelta(hours=args.hours)
@@ -114,15 +118,19 @@ if __name__ == "__main__":
     max_id = None
 
     while curr_date > min_date:
-        out = api.search_tweets(args.query, lang="en", result_type="recent", count=100, max_id=max_id,
-                                tweet_mode="extended")
-        for t in out:
-            max_id = t.id if max_id is None else min(max_id, t.id)
-            curr_date = t.created_at
-            if curr_date > min_date:
-                users_to_process.append(t.user.id)
-                users_dict[t.user.id] = t.user
-        break
+        try:
+            out = api.search_tweets(query, lang="en", result_type="recent", count=100, max_id=max_id,
+                                    tweet_mode="extended")
+            for t in out:
+                max_id = t.id if max_id is None else min(max_id, t.id)
+                curr_date = t.created_at
+                if curr_date > min_date:
+                    users_to_process.append(t.user.id)
+                    users_dict[t.user.id] = t.user
+            if len(users_to_process) > args.users_limit:
+                break
+        except Exception as e:
+            log.error(e)
 
     while len(users_to_process) > 0 and len(processed_users) < args.users_limit:
         user = users_to_process.pop(0)
