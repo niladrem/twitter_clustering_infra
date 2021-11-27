@@ -139,8 +139,8 @@ if __name__ == "__main__":
             processed_users.append(user)
             log.info("Processed users count %s", len(processed_users))
 
-uuid = str(uuid.uuid4())
-with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
-    pickle.dump(relations_dict, result_file)
-with open(os.path.join(args.path, "users_" + uuid), "wb") as result_file:
-    pickle.dump(users_dict, result_file)
+    uuid = str(uuid.uuid4())
+    with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
+        pickle.dump(relations_dict, result_file)
+    with open(os.path.join(args.path, "users_" + uuid), "wb") as result_file:
+        pickle.dump(users_dict, result_file)
