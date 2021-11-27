@@ -5,7 +5,7 @@ import time
 import os
 
 users = []  # id|screen_name|followers_count|friends_count|favourites_count
-relations = []  # id_source|id_destination|tweet_id|type|text
+relations = []  # id_source|id_destination|tweet_id|type|text|query|process_time|created_at
 
 
 def process_users_dict(users_dict):
@@ -16,7 +16,8 @@ def process_users_dict(users_dict):
 def process_relations_dict(relations_dict):
     for relation_type, relation_list in relations_dict.items():
         for rel in relation_list:
-            relations.append(tuple([rel['src_user_id'], rel['dst_user_id'], rel['tweet_id'], relation_type, rel['text']]))
+            relations.append(tuple([rel['src_user_id'], rel['dst_user_id'], rel['tweet_id'], relation_type, rel['text'],
+                                    rel['query'], rel['process_time'], rel['created_at']]))
 
 
 if __name__ == "__main__":
@@ -44,7 +45,8 @@ if __name__ == "__main__":
     relations = list(set(relations))
 
     usersDf = pd.DataFrame(users, columns=["id", "screen_name", "followers_count", "friends_count", "favourites_count"])
-    relationsDf = pd.DataFrame(relations, columns=["id_source", "id_destination", "tweet_id", "type", "text"])
+    relationsDf = pd.DataFrame(relations, columns=["id_source", "id_destination", "tweet_id", "type", "text",
+                                                   "query", "process_time", "created_at"])
 
     relationsDf['tweet_id'] = relationsDf['tweet_id'].astype('Int64')
 

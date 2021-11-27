@@ -25,6 +25,9 @@ CREATE TABLE relations (
     tweet_id VARCHAR(30),
     type VARCHAR(10),
     content TEXT,
+    query VARCHAR(50),
+    process_time TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE,
     CONSTRAINT fk_id_source
         FOREIGN KEY(id_source)
 	    REFERENCES users(id),

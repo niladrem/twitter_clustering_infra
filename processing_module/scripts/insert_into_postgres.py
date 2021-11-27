@@ -17,8 +17,9 @@ def process_users_df(cur, users_df, table_name):
 
 def process_relations_df(cur, relations_df, table_name):
     log.info("----relations-----")
-    query = "INSERT INTO " + table_name + " (id_source, id_destination, tweet_id, type, content) " \
-                                          "VALUES (%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING;"
+    query = "INSERT INTO " + table_name +\
+            " (id_source, id_destination, tweet_id, type, content, query, process_time, created_at) " \
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING;"
     cur.executemany(query, list(relations_df.where(pd.notnull(relations_df), None).itertuples(index=False, name=None)))
     log.info("success")
 
@@ -44,6 +45,7 @@ if __name__ == "__main__":
     cur = conn.cursor()
 
     files = os.listdir(args.path)
+    log.info(files)
     for file in files:
         try:
             if "users" in file:
