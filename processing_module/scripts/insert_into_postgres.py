@@ -24,7 +24,7 @@ def process_relations_df(cur, relations_df, table_name):
     log.info("success")
 
 
-if __name__ == "__main__":
+def parse_args():  # pragma: no cover
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--path', default='/shared/data/formatted/')
@@ -37,7 +37,12 @@ if __name__ == "__main__":
     parser.add_argument('--postgres-users', default='public.users')
     parser.add_argument('--postgres-relations', default='public.relations')
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
 
     conn = psycopg2.connect(host=args.postgres_host, database=args.postgres_database, port=args.postgres_port,
                             user=args.postgres_login, password=args.postgres_password)

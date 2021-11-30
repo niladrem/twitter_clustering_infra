@@ -18,6 +18,6 @@ User:
 - password: admin
 
 ### Tests & coverage
-`coverage run -m unittest processing_module/tests/test_download_tweets.py`
+`coverage run -m unittest discover processing_module/tests`
 
-`coverage report`
+`coverage report -m`
