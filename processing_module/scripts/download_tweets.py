@@ -129,7 +129,7 @@ def main_loop(args, api):
             log.error(e)
 
 
-if __name__ == "__main__":
+def parse_args():  # pragma: no cover
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--consumer-key')
@@ -142,7 +142,12 @@ if __name__ == "__main__":
     parser.add_argument('--extra-info', type=bool, default=False)
     parser.add_argument('--users-limit', type=int, default=15)
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
 
     auth = tweepy.OAuthHandler(args.consumer_key, args.consumer_secret)
     auth.set_access_token(args.access_token_key, args.access_token_secret)
