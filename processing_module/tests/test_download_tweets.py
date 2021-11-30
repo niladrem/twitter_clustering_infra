@@ -1,3 +1,5 @@
+import os
+import shutil
 import unittest
 from datetime import datetime, timezone, timedelta
 from types import SimpleNamespace
@@ -32,6 +34,16 @@ class Post:
 
 
 class ApiMock:
+    def __init__(self, time=None):
+        self.query_counter = 0
+        self.max_time = time
+
+    def search_tweets(self, query, lang="en", result_type="recent", count=100, max_id=None, tweet_mode="extended"):
+        self.query_counter += 1
+        return [Post(1000 - self.query_counter, "", self.query_counter + 2137,
+                     self.max_time - timedelta(hours=self.query_counter) if self.max_time
+                     else datetime.now(timezone.utc))]
+
     def lookup_statuses(self, posts_id):
         return [User(id).wrap() for id in posts_id]
 
@@ -52,52 +64,19 @@ class ApiMock:
         return [User(21)] if user_id == 2137 else []
 
 
-class TestHelpClasses(unittest.TestCase):
-    def test_user(self):
-        # given
-        id = 2137
-
-        # when
-        user = User(id)
-        user2 = User(id)
-        wrapped = user.wrap()
-
-        # then
-        self.assertEqual(user.id, id)
-        self.assertEqual(user, user2)
-        self.assertEqual(wrapped, SimpleNamespace(user=user))
-
-    def test_post(self):
-        # given
-        post_id = 2137
-        content = "test"
-        user_id = 7321
-        quoted_id = 21
-        in_reply_id = 37
-        retweeted_id = 23
-        mention = 33
-        time = datetime.now(timezone.utc)
-
-        # when
-        post = Post(post_id, content, user_id, time, quoted_id, in_reply_id, retweeted_id, [mention])
-
-        # then
-        self.assertEqual(post.id, post_id)
-        self.assertEqual(post.user.id, user_id)
-        self.assertEqual(post.text, content)
-        self.assertEqual(post.created_at, time)
-        self.assertEqual(post.is_quote_status, True)
-        self.assertEqual(post.quoted_status_id, quoted_id)
-        self.assertEqual(post.in_reply_to_status_id, in_reply_id)
-        self.assertEqual(post.retweeted_status.user.id, retweeted_id)
-        self.assertEqual(post.entities["user_mentions"][0]["id"], mention)
-
-
 class TestDownloadTweets(unittest.TestCase):
-    def test_add_user(self):
-        # given
+    def setUp(self):
+        self.api = ApiMock()
+        self.time = datetime.now(timezone.utc)
+        self.created_at = self.time - timedelta(hours=1)
+        download_tweets.process_time = self.time
         download_tweets.users_to_process = []
         download_tweets.users_dict = {}
+        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
+                                          "reply": [], "quote": []}
+
+    def test_add_user(self):
+        # given
         id = 2137
 
         # when
@@ -109,228 +88,213 @@ class TestDownloadTweets(unittest.TestCase):
         self.assertEqual(download_tweets.users_dict, {id: user})
 
     def test_process_simple_relation(self):
-        # given
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-
         # when
         download_tweets.process_relation("follow", 21, 37)
 
         # then
         self.assertEqual(download_tweets.relations_dict["follow"],
                          [{"src_user_id": 21, "dst_user_id": 37, "text": None, "tweet_id": None, "query": None,
-                          "process_time": time, "created_at": None}])
+                          "process_time": self.time, "created_at": None}])
 
     def test_process_full_relation(self):
         # given
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
         text = "abc"
         tweet_id = 2137
-        time = datetime.now(timezone.utc)
-        created_at = time - timedelta(hours=1)
-        download_tweets.process_time = time
 
         # when
-        download_tweets.process_relation("follow", 21, 37, text, tweet_id, created_at)
+        download_tweets.process_relation("follow", 21, 37, text, tweet_id, self.created_at)
 
         # then
         self.assertEqual(download_tweets.relations_dict["follow"],
                          [{"src_user_id": 21, "dst_user_id": 37, "text": text, "tweet_id": tweet_id, "query": None,
-                           "process_time": time, "created_at": created_at}])
+                           "process_time": self.time, "created_at": self.created_at}])
 
     def test_process_user_no_posts_with_extra_info(self):
         # given
-        api = ApiMock()
         user_id = 2137
         extra_info = True
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        download_tweets.users_to_process = []
-        download_tweets.users_dict = {}
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
 
         # when
-        download_tweets.process_user(api, user_id, extra_info)
+        download_tweets.process_user(self.api, user_id, extra_info)
 
         # then
         users = [1, 2, 3, 4, 21]
         self.assertEqual(set(download_tweets.users_to_process), set(users))
         self.assertEqual(download_tweets.users_dict, {id: User(id) for id in users})
-        self.assertEqual(download_tweets.relations_dict["retweet"], [])
-        self.assertEqual(download_tweets.relations_dict["mention"], [])
-        self.assertEqual(download_tweets.relations_dict["reply"], [])
-        self.assertEqual(download_tweets.relations_dict["quote"], [])
         self.assertEqual(download_tweets.relations_dict["follow"], [
             {"src_user_id": user_id, "dst_user_id": 1, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None},
+             "process_time": self.time, "created_at": None},
             {"src_user_id": user_id, "dst_user_id": 2, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None}])
+             "process_time": self.time, "created_at": None}])
         self.assertEqual(download_tweets.relations_dict["friend"], [
             {"src_user_id": user_id, "dst_user_id": 21, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None}])
+             "process_time": self.time, "created_at": None}])
         self.assertEqual(download_tweets.relations_dict["like"], [
             {"src_user_id": user_id, "dst_user_id": 3, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None},
+             "process_time": self.time, "created_at": None},
             {"src_user_id": user_id, "dst_user_id": 4, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None}])
+             "process_time": self.time, "created_at": None}])
 
     def test_process_user_no_posts_no_extra_info(self):
         # given
-        api = ApiMock()
         user_id = 2137
         extra_info = False
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        download_tweets.users_to_process = []
-        download_tweets.users_dict = {}
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
 
         # when
-        download_tweets.process_user(api, user_id, extra_info)
+        download_tweets.process_user(self.api, user_id, extra_info)
 
         # then
         users = [3, 4]
         self.assertEqual(set(download_tweets.users_to_process), set(users))
         self.assertEqual(download_tweets.users_dict, {id: User(id) for id in users})
-        self.assertEqual(download_tweets.relations_dict["retweet"], [])
-        self.assertEqual(download_tweets.relations_dict["mention"], [])
-        self.assertEqual(download_tweets.relations_dict["reply"], [])
-        self.assertEqual(download_tweets.relations_dict["quote"], [])
-        self.assertEqual(download_tweets.relations_dict["follow"], [])
-        self.assertEqual(download_tweets.relations_dict["friend"], [])
         self.assertEqual(download_tweets.relations_dict["like"], [
             {"src_user_id": user_id, "dst_user_id": 3, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None},
+             "process_time": self.time, "created_at": None},
             {"src_user_id": user_id, "dst_user_id": 4, "text": None, "tweet_id": None, "query": None,
-             "process_time": time, "created_at": None}])
+             "process_time": self.time, "created_at": None}])
 
     def test_process_user_posts(self):
         # given
-        api = ApiMock()
         user_id = 2138
         extra_info = False
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        download_tweets.users_to_process = []
-        download_tweets.users_dict = {}
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
 
         # when
-        download_tweets.process_user(api, user_id, extra_info)
+        download_tweets.process_user(self.api, user_id, extra_info)
 
         # then
         self.assertEqual(set(download_tweets.users_to_process), set([2137]))
         self.assertEqual(download_tweets.users_dict, {2137: User(2137)})
         self.assertEqual(download_tweets.relations_dict["retweet"], [
             {"src_user_id": 2137, "dst_user_id": user_id, "text": None, "tweet_id": 13, "query": None,
-             "process_time": time, "created_at": time}])
-        self.assertEqual(download_tweets.relations_dict["mention"], [])
-        self.assertEqual(download_tweets.relations_dict["reply"], [])
-        self.assertEqual(download_tweets.relations_dict["quote"], [])
-        self.assertEqual(download_tweets.relations_dict["follow"], [])
-        self.assertEqual(download_tweets.relations_dict["friend"], [])
-        self.assertEqual(download_tweets.relations_dict["like"], [])
+             "process_time": self.time, "created_at": self.time}])
 
     def test_process_quoted_status(self):
         # given
-        api = ApiMock()
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        created_at = time - timedelta(hours=1)
-        download_tweets.users_to_process = []
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
         user_id = 2137
         text = "skandal"
         post_id = 21
         quoted_id = 13
-        post = Post(post_id, text, user_id, created_at, quoted_status_id=quoted_id)
+        post = Post(post_id, text, user_id, self.created_at, quoted_status_id=quoted_id)
 
         # when
-        download_tweets.process_post(api, post, False)
+        download_tweets.process_post(self.api, post, False)
 
         # then
         self.assertEqual(download_tweets.users_to_process, [quoted_id])
         self.assertEqual(download_tweets.relations_dict["quote"], [
             {"src_user_id": user_id, "dst_user_id": quoted_id, "text": text, "tweet_id": post_id, "query": None,
-             "process_time": time, "created_at": created_at}])
+             "process_time": self.time, "created_at": self.created_at}])
 
     def test_process_retweeted_status(self):
         # given
-        api = ApiMock()
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        created_at = time - timedelta(hours=1)
-        download_tweets.users_to_process = []
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
         user_id = 2137
         post_id = 21
         retweeted_id = 13
-        post = Post(post_id, "text", user_id, created_at, retweeted_user_id=retweeted_id)
+        post = Post(post_id, "text", user_id, self.created_at, retweeted_user_id=retweeted_id)
 
         # when
-        download_tweets.process_post(api, post, False)
+        download_tweets.process_post(self.api, post, False)
 
         # then
         self.assertEqual(download_tweets.users_to_process, [retweeted_id])
         self.assertEqual(download_tweets.relations_dict["retweet"], [
             {"src_user_id": retweeted_id, "dst_user_id": user_id, "text": None, "tweet_id": post_id, "query": None,
-             "process_time": time, "created_at": created_at}])
+             "process_time": self.time, "created_at": self.created_at}])
 
     def test_process_reply_status(self):
         # given
-        api = ApiMock()
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        created_at = time - timedelta(hours=1)
-        download_tweets.users_to_process = []
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
         user_id = 2137
         post_id = 21
         reply_id = 37
         text = "skandal"
-        post = Post(post_id, text, user_id, created_at, in_reply_to_status_id=reply_id)
+        post = Post(post_id, text, user_id, self.created_at, in_reply_to_status_id=reply_id)
 
         # when
-        download_tweets.process_post(api, post, False)
+        download_tweets.process_post(self.api, post, False)
 
         # then
         self.assertEqual(download_tweets.users_to_process, [reply_id])
         self.assertEqual(download_tweets.relations_dict["reply"], [
             {"src_user_id": user_id, "dst_user_id": reply_id, "text": text, "tweet_id": post_id, "query": None,
-             "process_time": time, "created_at": created_at}])
+             "process_time": self.time, "created_at": self.created_at}])
 
     def test_process_mentions(self):
         # given
-        api = ApiMock()
-        time = datetime.now(timezone.utc)
-        download_tweets.process_time = time
-        created_at = time - timedelta(hours=1)
-        download_tweets.users_to_process = []
-        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
-                                          "reply": [], "quote": []}
         user_id = 2137
         post_id = 21
         mention_id = 23
         text = "skandal"
-        post = Post(post_id, text, user_id, created_at, mentions=[mention_id])
+        post = Post(post_id, text, user_id, self.created_at, mentions=[mention_id])
 
         # when
-        download_tweets.process_post(api, post, False)
+        download_tweets.process_post(self.api, post, False)
 
         # then
         self.assertEqual(download_tweets.users_to_process, [mention_id])
         self.assertEqual(download_tweets.relations_dict["mention"], [
             {"src_user_id": user_id, "dst_user_id": mention_id, "text": text, "tweet_id": post_id, "query": None,
-             "process_time": time, "created_at": created_at}])
+             "process_time": self.time, "created_at": self.created_at}])
+
+
+class TestMain(unittest.TestCase):
+    def test_dump_files(self):
+        # given
+        download_tweets.users_dict = {}
+        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
+                                          "reply": [], "quote": []}
+        uuid = "123"
+        dir = "tmp"
+        os.mkdir(dir)
+        args = SimpleNamespace(path=dir)
+
+        # when
+        download_tweets.dump_files(args, uuid)
+
+        # then
+        self.assertEqual(os.listdir(dir), ["users_123", "relations_123"])
+        shutil.rmtree(dir)
+
+    def test_process_users_loop(self):
+        # given
+        api = ApiMock()
+        download_tweets.users_to_process = [2137]
+        download_tweets.users_dict = {}
+        download_tweets.relations_dict = {"follow": [], "friend": [], "retweet": [], "mention": [], "like": [],
+                                          "reply": [], "quote": []}
+        download_tweets.processed_users = []
+        args = SimpleNamespace(users_limit=3, extra_info=True)
+
+        # when
+        download_tweets.process_users_loop(args, api)
+
+        # then
+        self.assertEqual(len(download_tweets.processed_users), 3)
+
+    def test_main_loop(self):
+        # given
+        api = ApiMock()
+        args = SimpleNamespace(hours=5, users_limit=13)
+        download_tweets.users_to_process = []
+
+        # when
+        download_tweets.main_loop(args, api)
+
+        # then
+        self.assertEqual(len(download_tweets.users_to_process), 13)
+
+    def test_main_loop_with_time(self):
+        # given
+        time = datetime.now(timezone.utc) + timedelta(minutes=5)
+        download_tweets.process_time = time
+        api = ApiMock(time)
+        args = SimpleNamespace(hours=5, users_limit=13)
+        download_tweets.users_to_process = []
+
+        # when
+        download_tweets.main_loop(args, api)
+
+        # then
+        self.assertEqual(len(download_tweets.users_to_process), 5)
 
 
 if __name__ == '__main__':

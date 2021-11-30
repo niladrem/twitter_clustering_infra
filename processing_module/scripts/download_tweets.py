@@ -18,8 +18,9 @@ query = None
 
 
 def add_user(user):
-    users_to_process.append(user.id)
-    users_dict[user.id] = user
+    if user.id not in users_to_process and user.id not in processed_users:
+        users_to_process.append(user.id)
+        users_dict[user.id] = user
 
 
 def process_relation(relation_type, src_user_id, dst_user_id, text=None, tweet_id=None, created_at=None):
@@ -91,6 +92,43 @@ def process_user(api, user_id, extra_info):
             process_relation("friend", user_id, friend.id)
 
 
+def dump_files(args, uuid):
+    with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
+        pickle.dump(relations_dict, result_file)
+    with open(os.path.join(args.path, "users_" + uuid), "wb") as result_file:
+        pickle.dump(users_dict, result_file)
+
+
+def process_users_loop(args, api):
+    while len(users_to_process) > 0 and len(processed_users) < args.users_limit:
+        user = users_to_process.pop(0)
+        if user not in processed_users:
+            process_user(api, user, args.extra_info)
+            processed_users.append(user)
+            log.info("Processed users count %s", len(processed_users))
+
+
+def main_loop(args, api):
+    min_date = datetime.now(timezone.utc) - timedelta(hours=args.hours)
+    curr_date = datetime.now(timezone.utc)
+    max_id = None
+
+    while curr_date > min_date:
+        try:
+            out = api.search_tweets(query, lang="en", result_type="recent", count=100, max_id=max_id,
+                                    tweet_mode="extended")
+            for t in out:
+                max_id = t.id if max_id is None else min(max_id, t.id)
+                curr_date = t.created_at
+                if curr_date > min_date:
+                    users_to_process.append(t.user.id)
+                    users_dict[t.user.id] = t.user
+            if len(users_to_process) >= args.users_limit:
+                break
+        except Exception as e:
+            log.error(e)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -113,34 +151,9 @@ if __name__ == "__main__":
 
     api = tweepy.API(auth, wait_on_rate_limit=True)
 
-    min_date = datetime.now(timezone.utc) - timedelta(hours=args.hours)
-    curr_date = datetime.now(timezone.utc)
-    max_id = None
+    main_loop(args, api)
 
-    while curr_date > min_date:
-        try:
-            out = api.search_tweets(query, lang="en", result_type="recent", count=100, max_id=max_id,
-                                    tweet_mode="extended")
-            for t in out:
-                max_id = t.id if max_id is None else min(max_id, t.id)
-                curr_date = t.created_at
-                if curr_date > min_date:
-                    users_to_process.append(t.user.id)
-                    users_dict[t.user.id] = t.user
-            if len(users_to_process) > args.users_limit:
-                break
-        except Exception as e:
-            log.error(e)
-
-    while len(users_to_process) > 0 and len(processed_users) < args.users_limit:
-        user = users_to_process.pop(0)
-        if user not in processed_users:
-            process_user(api, user, args.extra_info)
-            processed_users.append(user)
-            log.info("Processed users count %s", len(processed_users))
+    process_users_loop(args, api)
 
     uuid = str(uuid.uuid4())
-    with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
-        pickle.dump(relations_dict, result_file)
-    with open(os.path.join(args.path, "users_" + uuid), "wb") as result_file:
-        pickle.dump(users_dict, result_file)
+    dump_files(args, uuid)
