@@ -18,8 +18,9 @@ query = None
 
 
 def add_user(user):
-    users_to_process.append(user.id)
-    users_dict[user.id] = user
+    if user.id not in users_to_process and user.id not in processed_users:
+        users_to_process.append(user.id)
+        users_dict[user.id] = user
 
 
 def process_relation(relation_type, src_user_id, dst_user_id, text=None, tweet_id=None, created_at=None):
@@ -91,28 +92,23 @@ def process_user(api, user_id, extra_info):
             process_relation("friend", user_id, friend.id)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+def dump_files(args, uuid):
+    with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
+        pickle.dump(relations_dict, result_file)
+    with open(os.path.join(args.path, "users_" + uuid), "wb") as result_file:
+        pickle.dump(users_dict, result_file)
 
-    parser.add_argument('--consumer-key')
-    parser.add_argument('--consumer-secret')
-    parser.add_argument('--access-token-key')
-    parser.add_argument('--access-token-secret')
-    parser.add_argument('--query', default='covid')
-    parser.add_argument('--hours', type=int, default=3)
-    parser.add_argument('--path', default="/shared/data/raw/")
-    parser.add_argument('--extra-info', type=bool, default=False)
-    parser.add_argument('--users-limit', type=int, default=15)
 
-    args = parser.parse_args()
+def process_users_loop(args, api):
+    while len(users_to_process) > 0 and len(processed_users) < args.users_limit:
+        user = users_to_process.pop(0)
+        if user not in processed_users:
+            process_user(api, user, args.extra_info)
+            processed_users.append(user)
+            log.info("Processed users count %s", len(processed_users))
 
-    auth = tweepy.OAuthHandler(args.consumer_key, args.consumer_secret)
-    auth.set_access_token(args.access_token_key, args.access_token_secret)
 
-    query = args.query
-
-    api = tweepy.API(auth, wait_on_rate_limit=True)
-
+def main_loop(args, api):
     min_date = datetime.now(timezone.utc) - timedelta(hours=args.hours)
     curr_date = datetime.now(timezone.utc)
     max_id = None
@@ -127,20 +123,42 @@ if __name__ == "__main__":
                 if curr_date > min_date:
                     users_to_process.append(t.user.id)
                     users_dict[t.user.id] = t.user
-            if len(users_to_process) > args.users_limit:
+            if len(users_to_process) >= args.users_limit:
                 break
         except Exception as e:
             log.error(e)
 
-    while len(users_to_process) > 0 and len(processed_users) < args.users_limit:
-        user = users_to_process.pop(0)
-        if user not in processed_users:
-            process_user(api, user, args.extra_info)
-            processed_users.append(user)
-            log.info("Processed users count %s", len(processed_users))
 
-uuid = str(uuid.uuid4())
-with open(os.path.join(args.path, "relations_" + uuid), "wb") as result_file:
-    pickle.dump(relations_dict, result_file)
-with open(os.path.join(args.path, "users_" + uuid), "wb") as result_file:
-    pickle.dump(users_dict, result_file)
+def parse_args():  # pragma: no cover
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--consumer-key')
+    parser.add_argument('--consumer-secret')
+    parser.add_argument('--access-token-key')
+    parser.add_argument('--access-token-secret')
+    parser.add_argument('--query', default='covid')
+    parser.add_argument('--hours', type=int, default=3)
+    parser.add_argument('--path', default="/shared/data/raw/")
+    parser.add_argument('--extra-info', type=bool, default=False)
+    parser.add_argument('--users-limit', type=int, default=15)
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
+
+    auth = tweepy.OAuthHandler(args.consumer_key, args.consumer_secret)
+    auth.set_access_token(args.access_token_key, args.access_token_secret)
+
+    query = args.query
+
+    api = tweepy.API(auth, wait_on_rate_limit=True)
+
+    main_loop(args, api)
+
+    process_users_loop(args, api)
+
+    uuid = str(uuid.uuid4())
+    dump_files(args, uuid)

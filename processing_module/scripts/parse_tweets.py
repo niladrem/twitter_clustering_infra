@@ -20,15 +20,25 @@ def process_relations_dict(relations_dict):
                                     rel['query'], rel['process_time'], rel['created_at']]))
 
 
-if __name__ == "__main__":
+def parse_args():  # pragma: no cover
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--input-path', default="/shared/data/raw/")
     parser.add_argument('--output-path', default="/shared/data/formatted/")
     parser.add_argument('--remove-processed-files', type=bool, default=False)
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def dump_files(args, suffix, usersDf, relationsDf):
+    usersDf.to_csv(os.path.join(args.output_path, "users_" + str(int(suffix)) + ".csv"),
+                   sep='\t', encoding='utf-8', index=False)
+
+    relationsDf.to_csv(os.path.join(args.output_path, "relations_" + str(int(suffix)) + ".csv"),
+                   sep='\t', encoding='utf-8', index=False)
+
+
+def main_loop(args):
     files = os.listdir(args.input_path)
 
     for file in files:
@@ -41,6 +51,12 @@ if __name__ == "__main__":
         if args.remove_processed_files:
             os.remove(os.path.join(args.input_path, file))
 
+
+if __name__ == "__main__":
+    args = parse_args()
+
+    main_loop(args)
+
     users = list(set(users))
     relations = list(set(relations))
 
@@ -50,10 +66,6 @@ if __name__ == "__main__":
 
     relationsDf['tweet_id'] = relationsDf['tweet_id'].astype('Int64')
 
-    usersDf.to_csv(os.path.join(args.output_path, "users_" + str(int(time.time())) + ".csv"),
-                   sep='\t', encoding='utf-8', index=False)
-
-    relationsDf.to_csv(os.path.join(args.output_path, "relations_" + str(int(time.time())) + ".csv"),
-                   sep='\t', encoding='utf-8', index=False)
+    dump_files(args, time.time(), usersDf, relationsDf)
 
 

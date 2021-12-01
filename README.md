@@ -16,3 +16,8 @@ User:
 - url: localhost:4440
 - login: admin
 - password: admin
+
+### Tests & coverage
+`coverage run -m unittest discover processing_module/tests`
+
+`coverage report -m`
