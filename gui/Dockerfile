@@ -2,7 +2,6 @@ FROM python:3.7-buster
 WORKDIR /code
 RUN apt update -y && \
     apt install -y gcc musl-dev git make automake g++ subversion python3-dev
-#ENV LIBRARY_PATH=/lib:/usr/lib
 RUN git clone https://github.com/niladrem/twitter_clustering.git && \
     cd twitter_clustering && \
     git checkout origin/gui

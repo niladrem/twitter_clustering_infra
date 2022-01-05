@@ -31,7 +31,6 @@ services:
       - ./processing_module/rundeck:/etc/rundeck
     entrypoint: ["sh", "/etc/rundeck/init.sh"]
   gui:
-#    image: gui
     build: gui/
     hostname: gui
     ports:

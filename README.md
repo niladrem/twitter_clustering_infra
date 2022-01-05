@@ -1,8 +1,6 @@
 # twitter_clustering_infra
 
 ## How to run
-`docker build -t processing_module processing_module/`
-
 `docker-compose up`
 
 `docker-compose rm -f` - remove stopped containers
@@ -16,6 +14,9 @@ User:
 - url: localhost:4440
 - login: admin
 - password: admin
+
+## Access to clustering
+localhost:5000
 
 ### Tests & coverage
 `coverage run -m unittest discover processing_module/tests`
