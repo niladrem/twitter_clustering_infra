@@ -9,10 +9,10 @@ export RD_JOB_PATH="/etc/rundeck"
 
 while true
 do
-	sleep 30
-	echo "Check rundeck health"
-	HEALTH=$(curl "$RD_URL/health")
-	if [ "$HEALTH" = "ok" ]; then
+  sleep 30
+  echo "Check rundeck health"
+  HEALTH=$(curl "$RD_URL/health")
+  if [ "$HEALTH" = "ok" ]; then
     break
   fi
 done
