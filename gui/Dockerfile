@@ -2,9 +2,7 @@ FROM python:3.7-buster
 WORKDIR /code
 RUN apt update -y && \
     apt install -y gcc musl-dev git make automake g++ subversion python3-dev
-RUN git clone https://github.com/niladrem/twitter_clustering.git && \
-    cd twitter_clustering && \
-    git checkout origin/ajax
+RUN git clone https://github.com/niladrem/twitter_clustering.git
 RUN python3 -m pip install --upgrade pip
 RUN cd twitter_clustering && \
     pip install Cython numpy Pillow && \
