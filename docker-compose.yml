@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: example
       PGDATA: /var/lib/postgresql/data/pgdata
   processing_module:
-    image: processing_module
+    build: processing_module/
     hostname: rundeck
     ports:
       - 4440:4440
@@ -30,3 +30,10 @@ services:
     volumes:
       - ./processing_module/rundeck:/etc/rundeck
     entrypoint: ["sh", "/etc/rundeck/init.sh"]
+  gui:
+    build: gui/
+    hostname: gui
+    ports:
+      - 5000:5000
+    depends_on:
+      - db
